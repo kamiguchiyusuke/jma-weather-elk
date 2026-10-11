@@ -1,0 +1,62 @@
+# 気象庁データ用のローカル ELK（WSL の Docker Engine で動かす。Docker Desktop は使わない）
+#
+# 使い方（WSL の Ubuntu で）:
+#   cd /mnt/c/Users/yusuk/Downloads/test_jma/elk
+#   docker compose up -d        # 起動。Logstash が data/raw の気象庁CSVを jma-daily に取り込む
+#   docker compose ps           # 状態確認
+#   docker compose down         # 停止（取り込んだデータは esdata ボリュームに残る）
+#   docker compose down -v      # 停止してデータも消す
+#
+# Kibana: http://localhost:5601  / Elasticsearch: http://localhost:9200
+# ローカル検証用のため認証は無効。ポートは 127.0.0.1 にだけ公開している。
+name: jma-elk
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTIC_VERSION}
+    restart: unless-stopped   # WSL が再起動しても自動で立ち上がる
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms2g -Xmx2g
+    ports:
+      - "127.0.0.1:9200:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:9200/_cluster/health?wait_for_status=yellow || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:${ELASTIC_VERSION}
+    restart: unless-stopped
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - I18N_LOCALE=ja-JP
+    # --server.oas.enabled: /api/oas で API 仕様を見られるようにする（ダッシュボードを API で作るため）
+    # --xpack.security.showInsecureClusterWarning: 認証無効の警告（データが保護されていません）を出さない
+    command: ["/usr/local/bin/kibana-docker", "--server.oas.enabled=true", "--xpack.security.showInsecureClusterWarning=false"]
+    ports:
+      - "127.0.0.1:5601:5601"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  # 気象庁のCSV（data/raw/*.csv）を Python で整形せずにそのまま読み込む
+  logstash:
+    image: docker.elastic.co/logstash/logstash:${ELASTIC_VERSION}
+    restart: unless-stopped
+    environment:
+      - LS_JAVA_OPTS=-Xms1g -Xmx1g
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ./logstash/templates:/usr/share/logstash/templates:ro
+      - ../data/raw:/data/raw:ro
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+volumes:
+  esdata:

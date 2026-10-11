@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>都道府県の気象データ</title>
+<!-- build_viewer.py が下の const DATA に集計データを埋め込んで viewer/weather.html を作る -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11,11,11,0.10);
+  --hover: rgba(11,11,11,0.04);
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
+  --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
+  --up: #b4232a; --down: #1c5cab;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --ink: #f0efec;
+    --ink-2: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255,255,255,0.10);
+    --hover: rgba(255,255,255,0.05);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+    --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+    --up: #e66767; --down: #6da7ec;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --ink: #f0efec;
+  --ink-2: #c3c2b7;
+  --muted: #898781;
+  --grid: #2c2c2a;
+  --axis: #383835;
+  --border: rgba(255,255,255,0.10);
+  --hover: rgba(255,255,255,0.05);
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+  --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+  --up: #e66767; --down: #6da7ec;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: 14px/1.6 system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Yu Gothic UI", sans-serif;
+}
+main { max-width: 1120px; margin: 0 auto; padding: 24px 16px 64px; }
+header h1 { font-size: 22px; margin: 0 0 4px; }
+header p { margin: 0; color: var(--ink-2); }
+.controls {
+  position: sticky; top: 0; z-index: 5;
+  display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center;
+  margin: 20px -16px 16px; padding: 12px 16px;
+  background: var(--page); border-bottom: 1px solid var(--border);
+}
+.controls label { display: flex; gap: 8px; align-items: center; color: var(--ink-2); }
+select {
+  font: inherit; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px;
+}
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+.tile, .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+.tile { padding: 14px 16px; }
+.tile .label { color: var(--ink-2); font-size: 13px; }
+.tile .value { font-size: 26px; font-weight: 600; margin-top: 2px; }
+.tile .value small { font-size: 14px; font-weight: 400; color: var(--ink-2); margin-left: 2px; }
+.tile .note { color: var(--muted); font-size: 12px; }
+.card { padding: 16px; margin-bottom: 16px; }
+.card h2 { font-size: 15px; margin: 0; }
+.card .sub { color: var(--muted); font-size: 12px; margin: 2px 0 10px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid2 > .card { margin-bottom: 0; }
+.row { margin-bottom: 16px; }
+.chart { position: relative; height: 300px; }
+.chart.tall { height: 340px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--border); border-radius: 999px; padding: 2px 4px 2px 10px;
+}
+.chip i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.chip button {
+  border: 0; background: none; color: var(--muted); cursor: pointer;
+  font-size: 16px; line-height: 1; padding: 2px 6px; border-radius: 999px;
+}
+.chip button:hover { background: var(--hover); color: var(--ink); }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { padding: 6px 10px; border-bottom: 1px solid var(--grid); text-align: right; white-space: nowrap; }
+th:nth-child(-n+3), td:nth-child(-n+3) { text-align: left; }
+th { color: var(--ink-2); font-weight: 600; cursor: pointer; user-select: none; }
+th:hover { color: var(--ink); }
+th .arrow { color: var(--muted); font-size: 11px; }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--hover); }
+tbody tr.current { background: var(--hover); font-weight: 600; }
+.pos { color: var(--up); }
+.neg { color: var(--down); }
+.na { color: var(--muted); }
+.error { padding: 16px; border: 1px solid var(--s8); border-radius: 10px; margin: 16px 0; }
+footer { color: var(--muted); font-size: 12px; margin-top: 24px; }
+@media (max-width: 760px) {
+  .tiles { grid-template-columns: repeat(2, 1fr); }
+  .grid2 { grid-template-columns: 1fr; }
+  .grid2 > .card { margin-bottom: 0; }
+  .chart, .chart.tall { height: 260px; }
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>都道府県の気象データ</h1>
+    <p id="meta"></p>
+  </header>
+
+  <div id="error" class="error" hidden></div>
+
+  <div class="controls">
+    <label>都道府県 <select id="pref"></select></label>
+    <label>比べる年 <select id="year"></select></label>
+  </div>
+
+  <section class="tiles" id="tiles"></section>
+
+  <section class="card row">
+    <h2>年平均気温の推移</h2>
+    <p class="sub" id="trend-sub"></p>
+    <div class="chart tall"><canvas id="c-annual"></canvas></div>
+  </section>
+
+  <section class="grid2 row">
+    <div class="card">
+      <h2>月別の気温（全期間の平均）</h2>
+      <p class="sub" id="clim-sub"></p>
+      <div class="chart"><canvas id="c-clim-temp"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>月別の降水量（全期間の平均）</h2>
+      <p class="sub">各月の降水量の合計を、全期間で平均した値（mm）</p>
+      <div class="chart"><canvas id="c-clim-precip"></canvas></div>
+    </div>
+  </section>
+
+  <section class="grid2 row">
+    <div class="card">
+      <h2 id="year-temp-title"></h2>
+      <p class="sub">月平均気温（℃）。灰色は全期間の平均</p>
+      <div class="chart"><canvas id="c-year-temp"></canvas></div>
+    </div>
+    <div class="card">
+      <h2 id="year-precip-title"></h2>
+      <p class="sub">月の降水量（mm）。灰色は全期間の平均</p>
+      <div class="chart"><canvas id="c-year-precip"></canvas></div>
+    </div>
+  </section>
+
+  <section class="card row">
+    <h2>都道府県の比較：年平均気温</h2>
+    <p class="sub">最大 8 地点まで重ねて表示できます</p>
+    <div class="chips" id="chips"></div>
+    <div class="chart tall"><canvas id="c-compare"></canvas></div>
+  </section>
+
+  <section class="card row">
+    <h2>一覧</h2>
+    <p class="sub" id="table-sub">見出しをクリックで並べ替え、行をクリックでその都道府県を表示</p>
+    <div class="table-wrap"><table id="table"><thead></thead><tbody></tbody></table></div>
+  </section>
+
+  <footer>
+    出典：気象庁「過去の気象データ・ダウンロード」の日別値をもとに集計。
+    品質情報 5 以上の値のみ使用し、日数が 8 割未満の月、12 か月そろわない年は空欄にしています。
+  </footer>
+</main>
+
+<script>
+const DATA = /*__DATA__*/null;
+if (!DATA) {
+  // テンプレートを直接開いたとき（データ未埋め込み）
+  const e = document.getElementById("error");
+  e.hidden = false;
+  e.textContent = "このファイルはテンプレートでデータが入っていません。python build_viewer.py を実行し、できた viewer/weather.html を開いてください。";
+  throw new Error("DATA が空です");
+}
+
+const MONTHS = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
+const RECENT = 10;   // 「直近」とみなす年数
+const MAX_COMPARE = 8;
+
+const stations = DATA.stations;
+const byKey = Object.fromEntries(stations.map(s => [s.key, s]));
+const lastYear = Math.max(...stations.map(s => s.y1));
+
+// ---- 計算 ----
+const mean = a => {
+  const v = a.filter(x => x != null);
+  return v.length ? v.reduce((p, x) => p + x, 0) / v.length : null;
+};
+const years = s => Array.from({ length: s.y1 - s.y0 + 1 }, (_, i) => s.y0 + i);
+const climatology = (s, f) => MONTHS.map((_, m) => mean(s.m[f].map(row => row[m])));
+const recent = (s, f) => mean(years(s).map((y, i) => (y > lastYear - RECENT ? s.a[f][i] : null)));
+function slope(xs, ys) {  // 最小二乗法の傾き（1年あたり）
+  const pts = xs.map((x, i) => [x, ys[i]]).filter(p => p[1] != null);
+  if (pts.length < 10) return null;
+  const mx = mean(pts.map(p => p[0])), my = mean(pts.map(p => p[1]));
+  let num = 0, den = 0;
+  for (const [x, y] of pts) { num += (x - mx) * (y - my); den += (x - mx) ** 2; }
+  return num / den;
+}
+function summary(s) {
+  const allT = mean(s.a.t), recT = recent(s, "t");
+  return {
+    allT, recT, diffT: allT != null && recT != null ? recT - allT : null,
+    allP: mean(s.a.p), recP: recent(s, "p"),
+    trend: (v => (v == null ? null : v * 10))(slope(years(s), s.a.t)),
+  };
+}
+const fmt = (v, d = 1) => (v == null ? "—" : v.toLocaleString("ja-JP", { minimumFractionDigits: d, maximumFractionDigits: d }));
+const signed = (v, d = 1) => (v == null ? "—" : (v > 0 ? "+" : v < 0 ? "−" : "±") + fmt(Math.abs(v), d));
+
+// ---- 色（CSS の変数から読む。ダークモード切替にも追従） ----
+let C = {};
+function readColors() {
+  const cs = getComputedStyle(document.documentElement);
+  const get = n => cs.getPropertyValue(n).trim();
+  C = {
+    ink: get("--ink"), ink2: get("--ink-2"), muted: get("--muted"), grid: get("--grid"),
+    axis: get("--axis"), surface: get("--surface"),
+    series: [1, 2, 3, 4, 5, 6, 7, 8].map(i => get(`--s${i}`)),
+  };
+}
+
+// ---- グラフ ----
+const charts = {};
+function draw(id, config) {
+  if (typeof Chart === "undefined") return;  // オフラインなどで読めなかったときはグラフだけ省く
+  if (charts[id]) charts[id].destroy();
+  charts[id] = new Chart(document.getElementById(id), config);
+}
+function baseOptions(unit, { beginAtZero = false } = {}) {
+  return {
+    responsive: true, maintainAspectRatio: false, animation: false,
+    interaction: { mode: "index", intersect: false },
+    plugins: {
+      legend: {
+        position: "top", align: "start",
+        labels: { color: C.ink2, boxWidth: 10, boxHeight: 10, usePointStyle: true, pointStyle: "circle" },
+      },
+      tooltip: {
+        backgroundColor: C.surface, titleColor: C.ink, bodyColor: C.ink2,
+        borderColor: C.axis, borderWidth: 1, padding: 10, boxPadding: 4, usePointStyle: true,
+        callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y == null ? "—" : fmt(c.parsed.y)} ${unit}` },
+      },
+    },
+    scales: {
+      x: { grid: { display: false }, border: { color: C.axis }, ticks: { color: C.muted, maxRotation: 0, autoSkipPadding: 12 } },
+      y: {
+        beginAtZero, grid: { color: C.grid }, border: { display: false },
+        ticks: { color: C.muted, callback: v => `${v}${unit}` },
+      },
+    },
+  };
+}
+const line = (label, data, color, extra = {}) => ({
+  type: "line", label, data, borderColor: color, backgroundColor: color,
+  borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointHoverBorderWidth: 2,
+  pointHoverBorderColor: C.surface, spanGaps: false, tension: 0, ...extra,
+});
+const bars = (label, data, color) => ({
+  type: "bar", label, data, backgroundColor: color, maxBarThickness: 24,
+  borderRadius: { topLeft: 4, topRight: 4 }, borderSkipped: "start",
+});
+const singleLegend = { legend: { display: false } };
+
+// ---- 画面の状態 ----
+const params = new URLSearchParams(location.hash.slice(1));
+let current = byKey[params.get("p")] ? params.get("p") : (byKey["東京都"] ? "東京都" : stations[0].key);
+let selectedYear = null;
+let compare = [];   // [{ key, slot }] 色は追加したときの枠で固定（他を消しても色が変わらない）
+let sort = { col: null, dir: 1 };
+
+function renderPrefSelect() {
+  const sel = document.getElementById("pref");
+  sel.innerHTML = "";
+  for (const region of [...DATA.regions, "その他"]) {
+    const list = stations.filter(s => s.region === region);
+    if (!list.length) continue;
+    const g = document.createElement("optgroup");
+    g.label = region;
+    for (const s of list) g.append(new Option(`${s.pref}（${s.station}）`, s.key));
+    sel.append(g);
+  }
+  sel.value = current;
+  sel.onchange = () => selectStation(sel.value);
+}
+
+function renderYearSelect() {
+  const s = byKey[current];
+  const sel = document.getElementById("year");
+  sel.innerHTML = "";
+  const ys = years(s).reverse();
+  for (const y of ys) sel.append(new Option(`${y}年`, y));
+  if (!ys.includes(selectedYear)) {
+    // 既定は 12 か月そろった最新の年
+    selectedYear = ys.find(y => s.a.t[y - s.y0] != null) ?? ys[0];
+  }
+  sel.value = selectedYear;
+  sel.onchange = () => { selectedYear = +sel.value; renderYear(); };
+}
+
+function renderTiles() {
+  const s = byKey[current], sm = summary(s);
+  const recentLabel = `${lastYear - RECENT + 1}〜${lastYear}年`;
+  const tiles = [
+    { label: "年平均気温（全期間）", value: fmt(sm.allT), unit: "℃", note: `${s.y0}〜${s.y1}年の平均` },
+    { label: "年平均気温（直近10年）", value: fmt(sm.recT), unit: "℃",
+      note: `${recentLabel}・全期間比 ${signed(sm.diffT)}℃` },
+    { label: "気温の変化傾向", value: signed(sm.trend, 2), unit: "℃/10年", note: "年平均気温の回帰直線の傾き" },
+    { label: "年降水量（全期間）", value: fmt(sm.allP, 0), unit: "mm", note: `直近10年 ${fmt(sm.recP, 0)} mm` },
+  ];
+  document.getElementById("tiles").innerHTML = tiles.map(t => `
+    <div class="tile">
+      <div class="label">${t.label}</div>
+      <div class="value">${t.value}<small>${t.unit}</small></div>
+      <div class="note">${t.note}</div>
+    </div>`).join("");
+}
+
+function renderAnnual() {
+  const s = byKey[current];
+  document.getElementById("trend-sub").textContent =
+    `${s.pref}・${s.station}（${s.y0}〜${s.y1}年）。日最高・日最低気温の年平均も表示。12 か月そろわない年は途切れます`;
+  draw("c-annual", {
+    data: {
+      labels: years(s),
+      datasets: [
+        line("日最高気温の平均", s.a.tx, C.series[1]),
+        line("平均気温", s.a.t, C.series[0]),
+        line("日最低気温の平均", s.a.tn, C.series[2]),
+      ],
+    },
+    options: baseOptions("℃"),
+  });
+}
+
+function renderClimate() {
+  const s = byKey[current];
+  document.getElementById("clim-sub").textContent = `${s.y0}〜${s.y1}年の各月の平均（℃）`;
+  draw("c-clim-temp", {
+    data: {
+      labels: MONTHS,
+      datasets: [
+        line("日最高気温の平均", climatology(s, "tx"), C.series[1], { pointRadius: 3 }),
+        line("平均気温", climatology(s, "t"), C.series[0], { pointRadius: 3 }),
+        line("日最低気温の平均", climatology(s, "tn"), C.series[2], { pointRadius: 3 }),
+      ],
+    },
+    options: baseOptions("℃"),
+  });
+  const o = baseOptions("mm", { beginAtZero: true });
+  Object.assign(o.plugins, singleLegend);
+  draw("c-clim-precip", {
+    data: { labels: MONTHS, datasets: [bars("降水量", climatology(s, "p"), C.series[0])] },
+    options: o,
+  });
+}
+
+function renderYear() {
+  const s = byKey[current], i = selectedYear - s.y0;
+  document.getElementById("year-temp-title").textContent = `${selectedYear}年の気温`;
+  document.getElementById("year-precip-title").textContent = `${selectedYear}年の降水量`;
+  draw("c-year-temp", {
+    data: {
+      labels: MONTHS,
+      datasets: [
+        line(`${selectedYear}年`, s.m.t[i], C.series[0], { pointRadius: 3 }),
+        line("全期間の平均", climatology(s, "t"), C.muted, { pointRadius: 0 }),
+      ],
+    },
+    options: baseOptions("℃"),
+  });
+  draw("c-year-precip", {
+    data: {
+      labels: MONTHS,
+      datasets: [
+        bars(`${selectedYear}年`, s.m.p[i], C.series[0]),
+        line("全期間の平均", climatology(s, "p"), C.muted, { pointRadius: 3, pointBackgroundColor: C.muted }),
+      ],
+    },
+    options: baseOptions("mm", { beginAtZero: true }),
+  });
+}
+
+function renderCompare() {
+  const chips = document.getElementById("chips");
+  chips.innerHTML = "";
+  for (const c of compare) {
+    const s = byKey[c.key];
+    const el = document.createElement("span");
+    el.className = "chip";
+    el.innerHTML = `<i style="background:${C.series[c.slot]}"></i>${s.pref}<button title="外す" aria-label="${s.pref}を外す">×</button>`;
+    el.querySelector("button").onclick = () => { compare = compare.filter(x => x !== c); renderCompare(); };
+    chips.append(el);
+  }
+  if (compare.length < MAX_COMPARE) {
+    const sel = document.createElement("select");
+    sel.append(new Option("＋ 都道府県を追加", ""));
+    for (const s of stations) if (!compare.some(c => c.key === s.key)) sel.append(new Option(s.pref, s.key));
+    sel.onchange = () => {
+      const used = new Set(compare.map(c => c.slot));
+      const slot = [0, 1, 2, 3, 4, 5, 6, 7].find(n => !used.has(n));
+      compare.push({ key: sel.value, slot });
+      renderCompare();
+    };
+    chips.append(sel);
+  }
+  const y0 = Math.min(...stations.map(s => s.y0));
+  const labels = Array.from({ length: lastYear - y0 + 1 }, (_, i) => y0 + i);
+  draw("c-compare", {
+    data: {
+      labels,
+      datasets: compare.map(c => {
+        const s = byKey[c.key];
+        return line(s.pref, labels.map(y => (y >= s.y0 && y <= s.y1 ? s.a.t[y - s.y0] : null)), C.series[c.slot]);
+      }),
+    },
+    options: baseOptions("℃"),
+  });
+}
+
+const COLUMNS = [
+  { key: "pref", label: "都道府県", get: (s, sm) => s.pref, text: true },
+  { key: "station", label: "地点", get: (s, sm) => s.station, text: true },
+  { key: "period", label: "期間", get: (s, sm) => s.y0, show: (s) => `${s.y0}〜${s.y1}` },
+  { key: "allT", label: "年平均気温", get: (s, sm) => sm.allT, show: (s, sm) => fmt(sm.allT) },
+  { key: "recT", label: "直近10年", get: (s, sm) => sm.recT, show: (s, sm) => fmt(sm.recT) },
+  { key: "diffT", label: "差", get: (s, sm) => sm.diffT,
+    show: (s, sm) => `<span class="${sm.diffT > 0 ? "pos" : sm.diffT < 0 ? "neg" : "na"}">${signed(sm.diffT)}</span>` },
+  { key: "trend", label: "傾向 ℃/10年", get: (s, sm) => sm.trend, show: (s, sm) => signed(sm.trend, 2) },
+  { key: "allP", label: "年降水量 mm", get: (s, sm) => sm.allP, show: (s, sm) => fmt(sm.allP, 0) },
+  { key: "recP", label: "直近10年 mm", get: (s, sm) => sm.recP, show: (s, sm) => fmt(sm.recP, 0) },
+];
+const summaries = Object.fromEntries(stations.map(s => [s.key, summary(s)]));
+
+function renderTable() {
+  const table = document.getElementById("table");
+  table.tHead.innerHTML = "<tr>" + COLUMNS.map(c => {
+    const arrow = sort.col === c.key ? (sort.dir > 0 ? " ▲" : " ▼") : "";
+    return `<th data-col="${c.key}">${c.label}<span class="arrow">${arrow}</span></th>`;
+  }).join("") + "</tr>";
+  table.tHead.querySelectorAll("th").forEach(th => th.onclick = () => {
+    const col = th.dataset.col;
+    sort = { col, dir: sort.col === col ? -sort.dir : (COLUMNS.find(c => c.key === col).text ? 1 : -1) };
+    renderTable();
+  });
+
+  let rows = stations.slice();
+  if (sort.col) {
+    const c = COLUMNS.find(c => c.key === sort.col);
+    rows.sort((a, b) => {
+      const va = c.get(a, summaries[a.key]), vb = c.get(b, summaries[b.key]);
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      return (c.text ? String(va).localeCompare(String(vb), "ja") : va - vb) * sort.dir;
+    });
+  }
+  table.tBodies[0].innerHTML = rows.map(s => {
+    const sm = summaries[s.key];
+    const cells = COLUMNS.map(c => `<td>${c.show ? c.show(s, sm) : c.get(s, sm)}</td>`).join("");
+    return `<tr data-key="${s.key}" class="${s.key === current ? "current" : ""}">${cells}</tr>`;
+  }).join("");
+  table.tBodies[0].querySelectorAll("tr").forEach(tr => tr.onclick = () => {
+    selectStation(tr.dataset.key);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+  document.getElementById("table-sub").textContent =
+    `${stations.length} 地点。「直近10年」は ${lastYear - RECENT + 1}〜${lastYear}年。見出しをクリックで並べ替え、行をクリックでその都道府県を表示`;
+}
+
+function selectStation(key) {
+  current = key;
+  document.getElementById("pref").value = key;
+  history.replaceState(null, "", `#p=${encodeURIComponent(key)}`);
+  renderYearSelect();
+  renderStation();
+  renderTable();
+}
+
+function renderStation() {
+  renderTiles();
+  renderAnnual();
+  renderClimate();
+  renderYear();
+}
+
+function renderAll() {
+  readColors();
+  renderStation();
+  renderCompare();
+}
+
+// ---- 起動 ----
+document.getElementById("meta").textContent =
+  `気象庁 過去の気象データ（日別値）から集計 ・ ${stations.length} 地点 ・ 集計日時 ${DATA.generated}`;
+if (typeof Chart === "undefined") {
+  const e = document.getElementById("error");
+  e.hidden = false;
+  e.textContent = "グラフ描画ライブラリ（Chart.js）を読み込めませんでした。インターネットに接続してから再読み込みしてください。数値と一覧表は表示できます。";
+} else {
+  Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+}
+for (const k of ["北海道", "東京都", "沖縄県"]) {
+  if (byKey[k]) compare.push({ key: k, slot: compare.length });
+}
+if (!compare.length) stations.slice(0, 3).forEach((s, i) => compare.push({ key: s.key, slot: i }));
+renderPrefSelect();
+renderYearSelect();
+renderTable();
+renderAll();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", renderAll);
+</script>
+</body>
+</html>

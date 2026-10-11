@@ -1,0 +1,10 @@
+# Python
+.venv/
+__pycache__/
+
+# 気象庁からダウンロードしたデータ（download_jma.py で取り直せる）
+data/
+
+# 生成物（HTML ビューアだけ残す）
+viewer/*
+!viewer/weather.html

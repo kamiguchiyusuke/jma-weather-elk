@@ -1,0 +1,857 @@
+{
+  "title": "都道府県の気象データ",
+  "description": "気象庁の日別値（47都道府県の気象台、1976〜2025年）。HTML ビューア（viewer/weather.html）と同じグラフ",
+  "time_range": {
+    "from": "1975-12-31T15:00:00.000Z",
+    "to": "2025-12-31T15:00:00.000Z",
+    "mode": "absolute"
+  },
+  "options": {
+    "use_margins": true,
+    "sync_cursor": true,
+    "sync_tooltips": true,
+    "hide_panel_titles": false
+  },
+  "pinned_panels": [
+    {
+      "type": "esql_control",
+      "width": "medium",
+      "grow": false,
+      "config": {
+        "title": "都道府県",
+        "variable_name": "pref",
+        "variable_type": "values",
+        "control_type": "VALUES_FROM_QUERY",
+        "esql_query": "FROM jma-daily | STATS BY prefecture | EVAL no = CASE(prefecture == \"北海道\", 1, prefecture == \"青森県\", 2, prefecture == \"岩手県\", 3, prefecture == \"宮城県\", 4, prefecture == \"秋田県\", 5, prefecture == \"山形県\", 6, prefecture == \"福島県\", 7, prefecture == \"茨城県\", 8, prefecture == \"栃木県\", 9, prefecture == \"群馬県\", 10, prefecture == \"埼玉県\", 11, prefecture == \"千葉県\", 12, prefecture == \"東京都\", 13, prefecture == \"神奈川県\", 14, prefecture == \"新潟県\", 15, prefecture == \"富山県\", 16, prefecture == \"石川県\", 17, prefecture == \"福井県\", 18, prefecture == \"山梨県\", 19, prefecture == \"長野県\", 20, prefecture == \"岐阜県\", 21, prefecture == \"静岡県\", 22, prefecture == \"愛知県\", 23, prefecture == \"三重県\", 24, prefecture == \"滋賀県\", 25, prefecture == \"京都府\", 26, prefecture == \"大阪府\", 27, prefecture == \"兵庫県\", 28, prefecture == \"奈良県\", 29, prefecture == \"和歌山県\", 30, prefecture == \"鳥取県\", 31, prefecture == \"島根県\", 32, prefecture == \"岡山県\", 33, prefecture == \"広島県\", 34, prefecture == \"山口県\", 35, prefecture == \"徳島県\", 36, prefecture == \"香川県\", 37, prefecture == \"愛媛県\", 38, prefecture == \"高知県\", 39, prefecture == \"福岡県\", 40, prefecture == \"佐賀県\", 41, prefecture == \"長崎県\", 42, prefecture == \"熊本県\", 43, prefecture == \"大分県\", 44, prefecture == \"宮崎県\", 45, prefecture == \"鹿児島県\", 46, prefecture == \"沖縄県\", 47) | SORT no | KEEP prefecture",
+        "selected_options": [
+          "東京都"
+        ],
+        "single_select": true
+      }
+    },
+    {
+      "type": "esql_control",
+      "width": "small",
+      "grow": false,
+      "config": {
+        "title": "比べる年",
+        "variable_name": "year",
+        "variable_type": "values",
+        "control_type": "VALUES_FROM_QUERY",
+        "esql_query": "FROM jma-daily | STATS BY year | SORT year DESC",
+        "selected_options": [
+          "2025"
+        ],
+        "single_select": true
+      }
+    },
+    {
+      "type": "esql_control",
+      "width": "large",
+      "grow": false,
+      "config": {
+        "title": "比較する都道府県",
+        "variable_name": "prefs",
+        "variable_type": "multi_values",
+        "control_type": "VALUES_FROM_QUERY",
+        "esql_query": "FROM jma-daily | STATS BY prefecture | EVAL no = CASE(prefecture == \"北海道\", 1, prefecture == \"青森県\", 2, prefecture == \"岩手県\", 3, prefecture == \"宮城県\", 4, prefecture == \"秋田県\", 5, prefecture == \"山形県\", 6, prefecture == \"福島県\", 7, prefecture == \"茨城県\", 8, prefecture == \"栃木県\", 9, prefecture == \"群馬県\", 10, prefecture == \"埼玉県\", 11, prefecture == \"千葉県\", 12, prefecture == \"東京都\", 13, prefecture == \"神奈川県\", 14, prefecture == \"新潟県\", 15, prefecture == \"富山県\", 16, prefecture == \"石川県\", 17, prefecture == \"福井県\", 18, prefecture == \"山梨県\", 19, prefecture == \"長野県\", 20, prefecture == \"岐阜県\", 21, prefecture == \"静岡県\", 22, prefecture == \"愛知県\", 23, prefecture == \"三重県\", 24, prefecture == \"滋賀県\", 25, prefecture == \"京都府\", 26, prefecture == \"大阪府\", 27, prefecture == \"兵庫県\", 28, prefecture == \"奈良県\", 29, prefecture == \"和歌山県\", 30, prefecture == \"鳥取県\", 31, prefecture == \"島根県\", 32, prefecture == \"岡山県\", 33, prefecture == \"広島県\", 34, prefecture == \"山口県\", 35, prefecture == \"徳島県\", 36, prefecture == \"香川県\", 37, prefecture == \"愛媛県\", 38, prefecture == \"高知県\", 39, prefecture == \"福岡県\", 40, prefecture == \"佐賀県\", 41, prefecture == \"長崎県\", 42, prefecture == \"熊本県\", 43, prefecture == \"大分県\", 44, prefecture == \"宮崎県\", 45, prefecture == \"鹿児島県\", 46, prefecture == \"沖縄県\", 47) | SORT no | KEEP prefecture",
+        "selected_options": [
+          "北海道",
+          "東京都",
+          "沖縄県"
+        ],
+        "single_select": false
+      }
+    }
+  ],
+  "panels": [
+    {
+      "id": "tile-all",
+      "type": "vis",
+      "grid": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 6
+      },
+      "config": {
+        "type": "metric",
+        "title": "年平均気温（全期間）",
+        "hide_title": true,
+        "data_source": {
+          "type": "esql",
+          "query": "FROM jma-daily\n| WHERE prefecture == ?pref\n| STATS t = AVG(temp_avg), tx = AVG(temp_max), tn = AVG(temp_min), p = SUM(precip_total),\n    nt = COUNT(temp_avg), ntx = COUNT(temp_max), ntn = COUNT(temp_min), np = COUNT(precip_total), days = COUNT(*)\n  BY year, month\n| EVAL t = CASE(nt >= days * 0.8, ROUND(t, 1)), tx = CASE(ntx >= days * 0.8, ROUND(tx, 1)),\n    tn = CASE(ntn >= days * 0.8, ROUND(tn, 1)), p = CASE(np >= days * 0.8, ROUND(p, 1))\n| STATS t = AVG(t), tx = AVG(tx), tn = AVG(tn), p = SUM(p),\n    ct = COUNT(t), ctx = COUNT(tx), ctn = COUNT(tn), cp = COUNT(p) BY year\n| EVAL t = CASE(ct == 12, ROUND(t, 1)), tx = CASE(ctx == 12, ROUND(tx, 1)),\n    tn = CASE(ctn == 12, ROUND(tn, 1)), p = CASE(cp == 12, ROUND(p, 1))\n| STATS v = AVG(t)"
+        },
+        "metrics": [
+          {
+            "type": "primary",
+            "column": "v",
+            "label": "年平均気温（全期間）",
+            "format": {
+              "type": "number",
+              "decimals": 1,
+              "suffix": "℃"
+            },
+            "subtitle": "1976〜2025年の平均"
+          }
+        ]
+      }
+    },
+    {
+      "id": "tile-recent",
+      "type": "vis",
+      "grid": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 6
+      },
+      "config": {
+        "type": "metric",
+        "title": "年平均気温（直近10年）",
+        "hide_title": true,
+        "data_source": {
+          "type": "esql",
+          "query": "FROM jma-daily\n| WHERE prefecture == ?pref\n| STATS t = AVG(temp_avg), tx = AVG(temp_max), tn = AVG(temp_min), p = SUM(precip_total),\n    nt = COUNT(temp_avg), ntx = COUNT(temp_max), ntn = COUNT(temp_min), np = COUNT(precip_total), days = COUNT(*)\n  BY year, month\n| EVAL t = CASE(nt >= days * 0.8, ROUND(t, 1)), tx = CASE(ntx >= days * 0.8, ROUND(tx, 1)),\n    tn = CASE(ntn >= days * 0.8, ROUND(tn, 1)), p = CASE(np >= days * 0.8, ROUND(p, 1))\n| STATS t = AVG(t), tx = AVG(tx), tn = AVG(tn), p = SUM(p),\n    ct = COUNT(t), ctx = COUNT(tx), ctn = COUNT(tn), cp = COUNT(p) BY year\n| EVAL t = CASE(ct == 12, ROUND(t, 1)), tx = CASE(ctx == 12, ROUND(tx, 1)),\n    tn = CASE(ctn == 12, ROUND(tn, 1)), p = CASE(cp == 12, ROUND(p, 1))\n| STATS v = AVG(t) WHERE year >= 2016, base = AVG(t)\n| EVAL diff = v - base"
+        },
+        "metrics": [
+          {
+            "type": "primary",
+            "column": "v",
+            "label": "年平均気温（直近10年）",
+            "format": {
+              "type": "number",
+              "decimals": 1,
+              "suffix": "℃"
+            },
+            "subtitle": "2016〜2025年"
+          },
+          {
+            "type": "secondary",
+            "column": "diff",
+            "label": "全期間比（℃）",
+            "format": {
+              "type": "custom",
+              "pattern": "+0.0"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "tile-trend",
+      "type": "vis",
+      "grid": {
+        "x": 24,
+        "y": 0,
+        "w": 12,
+        "h": 6
+      },
+      "config": {
+        "type": "metric",
+        "title": "気温の変化傾向（℃/10年）",
+        "hide_title": true,
+        "data_source": {
+          "type": "esql",
+          "query": "FROM jma-daily\n| WHERE prefecture == ?pref\n| STATS t = AVG(temp_avg), tx = AVG(temp_max), tn = AVG(temp_min), p = SUM(precip_total),\n    nt = COUNT(temp_avg), ntx = COUNT(temp_max), ntn = COUNT(temp_min), np = COUNT(precip_total), days = COUNT(*)\n  BY year, month\n| EVAL t = CASE(nt >= days * 0.8, ROUND(t, 1)), tx = CASE(ntx >= days * 0.8, ROUND(tx, 1)),\n    tn = CASE(ntn >= days * 0.8, ROUND(tn, 1)), p = CASE(np >= days * 0.8, ROUND(p, 1))\n| STATS t = AVG(t), tx = AVG(tx), tn = AVG(tn), p = SUM(p),\n    ct = COUNT(t), ctx = COUNT(tx), ctn = COUNT(tn), cp = COUNT(p) BY year\n| EVAL t = CASE(ct == 12, ROUND(t, 1)), tx = CASE(ctx == 12, ROUND(tx, 1)),\n    tn = CASE(ctn == 12, ROUND(tn, 1)), p = CASE(cp == 12, ROUND(p, 1))\n| WHERE t IS NOT NULL\n| EVAL x = TO_DOUBLE(year - 2000)\n| STATS n = COUNT(*), sx = SUM(x), sy = SUM(t), sxy = SUM(x * t), sxx = SUM(x * x)\n| EVAL trend = (n * sxy - sx * sy) / (n * sxx - sx * sx) * 10\n| KEEP trend"
+        },
+        "metrics": [
+          {
+            "type": "primary",
+            "column": "trend",
+            "label": "気温の変化傾向（℃/10年）",
+            "format": {
+              "type": "custom",
+              "pattern": "+0.00"
+            },
+            "subtitle": "年平均気温の回帰直線の傾き"
+          }
+        ]
+      }
+    },
+    {
+      "id": "tile-precip",
+      "type": "vis",
+      "grid": {
+        "x": 36,
+        "y": 0,
+        "w": 12,
+        "h": 6
+      },
+      "config": {
+        "type": "metric",
+        "title": "年降水量（全期間）",
+        "hide_title": true,
+        "data_source": {
+          "type": "esql",
+          "query": "FROM jma-daily\n| WHERE prefecture == ?pref\n| STATS t = AVG(temp_avg), tx = AVG(temp_max), tn = AVG(temp_min), p = SUM(precip_total),\n    nt = COUNT(temp_avg), ntx = COUNT(temp_max), ntn = COUNT(temp_min), np = COUNT(precip_total), days = COUNT(*)\n  BY year, month\n| EVAL t = CASE(nt >= days * 0.8, ROUND(t, 1)), tx = CASE(ntx >= days * 0.8, ROUND(tx, 1)),\n    tn = CASE(ntn >= days * 0.8, ROUND(tn, 1)), p = CASE(np >= days * 0.8, ROUND(p, 1))\n| STATS t = AVG(t), tx = AVG(tx), tn = AVG(tn), p = SUM(p),\n    ct = COUNT(t), ctx = COUNT(tx), ctn = COUNT(tn), cp = COUNT(p) BY year\n| EVAL t = CASE(ct == 12, ROUND(t, 1)), tx = CASE(ctx == 12, ROUND(tx, 1)),\n    tn = CASE(ctn == 12, ROUND(tn, 1)), p = CASE(cp == 12, ROUND(p, 1))\n| STATS v = AVG(p), r = AVG(p) WHERE year >= 2016"
+        },
+        "metrics": [
+          {
+            "type": "primary",
+            "column": "v",
+            "label": "年降水量（全期間）",
+            "format": {
+              "type": "number",
+              "decimals": 0,
+              "suffix": " mm"
+            },
+            "subtitle": "1976〜2025年の平均"
+          },
+          {
+            "type": "secondary",
+            "column": "r",
+            "label": "直近10年",
+            "format": {
+              "type": "number",
+              "decimals": 0,
+              "suffix": " mm"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "annual",
+      "type": "vis",
+      "grid": {
+        "x": 0,
+        "y": 6,
+        "w": 48,
+        "h": 15
+      },
+      "config": {
+        "type": "xy",
+        "title": "年平均気温の推移（12か月そろわない年は途切れます）",
+        "legend": {
+          "visibility": "visible",
+          "placement": "outside",
+          "position": "top"
+        },
+        "axis": {
+          "x": {
+            "title": {
+              "visible": false
+            },
+            "scale": "linear"
+          },
+          "y": {
+            "title": {
+              "visible": false
+            },
+            "domain": {
+              "type": "fit"
+            }
+          }
+        },
+        "styling": {
+          "fitting": {
+            "type": "none"
+          },
+          "points": {
+            "visibility": "auto"
+          }
+        },
+        "layers": [
+          {
+            "type": "line",
+            "data_source": {
+              "type": "esql",
+              "query": "FROM jma-daily\n| WHERE prefecture == ?pref\n| STATS t = AVG(temp_avg), tx = AVG(temp_max), tn = AVG(temp_min), p = SUM(precip_total),\n    nt = COUNT(temp_avg), ntx = COUNT(temp_max), ntn = COUNT(temp_min), np = COUNT(precip_total), days = COUNT(*)\n  BY year, month\n| EVAL t = CASE(nt >= days * 0.8, ROUND(t, 1)), tx = CASE(ntx >= days * 0.8, ROUND(tx, 1)),\n    tn = CASE(ntn >= days * 0.8, ROUND(tn, 1)), p = CASE(np >= days * 0.8, ROUND(p, 1))\n| STATS t = AVG(t), tx = AVG(tx), tn = AVG(tn), p = SUM(p),\n    ct = COUNT(t), ctx = COUNT(tx), ctn = COUNT(tn), cp = COUNT(p) BY year\n| EVAL t = CASE(ct == 12, ROUND(t, 1)), tx = CASE(ctx == 12, ROUND(tx, 1)),\n    tn = CASE(ctn == 12, ROUND(tn, 1)), p = CASE(cp == 12, ROUND(p, 1))\n| KEEP year, tx, t, tn\n| SORT year"
+            },
+            "x": {
+              "column": "year",
+              "format": {
+                "type": "custom",
+                "pattern": "0"
+              }
+            },
+            "y": [
+              {
+                "column": "tx",
+                "label": "日最高気温の平均",
+                "format": {
+                  "type": "number",
+                  "decimals": 1,
+                  "suffix": "℃"
+                },
+                "color": {
+                  "type": "static",
+                  "color": "#eb6834"
+                }
+              },
+              {
+                "column": "t",
+                "label": "平均気温",
+                "format": {
+                  "type": "number",
+                  "decimals": 1,
+                  "suffix": "℃"
+                },
+                "color": {
+                  "type": "static",
+                  "color": "#2a78d6"
+                }
+              },
+              {
+                "column": "tn",
+                "label": "日最低気温の平均",
+                "format": {
+                  "type": "number",
+                  "decimals": 1,
+                  "suffix": "℃"
+                },
+                "color": {
+                  "type": "static",
+                  "color": "#1baf7a"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "clim-temp",
+      "type": "vis",
+      "grid": {
+        "x": 0,
+        "y": 21,
+        "w": 24,
+        "h": 14
+      },
+      "config": {
+        "type": "xy",
+        "title": "月別の気温（全期間の平均）",
+        "legend": {
+          "visibility": "visible",
+          "placement": "outside",
+          "position": "top"
+        },
+        "axis": {
+          "x": {
+            "title": {
+              "visible": false
+            },
+            "scale": "linear"
+          },
+          "y": {
+            "title": {
+              "visible": false
+            },
+            "domain": {
+              "type": "fit"
+            }
+          }
+        },
+        "styling": {
+          "fitting": {
+            "type": "none"
+          },
+          "points": {
+            "visibility": "auto"
+          }
+        },
+        "layers": [
+          {
+            "type": "line",
+            "data_source": {
+              "type": "esql",
+              "query": "FROM jma-daily\n| WHERE prefecture == ?pref\n| STATS t = AVG(temp_avg), tx = AVG(temp_max), tn = AVG(temp_min), p = SUM(precip_total),\n    nt = COUNT(temp_avg), ntx = COUNT(temp_max), ntn = COUNT(temp_min), np = COUNT(precip_total), days = COUNT(*)\n  BY year, month\n| EVAL t = CASE(nt >= days * 0.8, ROUND(t, 1)), tx = CASE(ntx >= days * 0.8, ROUND(tx, 1)),\n    tn = CASE(ntn >= days * 0.8, ROUND(tn, 1)), p = CASE(np >= days * 0.8, ROUND(p, 1))\n| STATS tx = AVG(tx), t = AVG(t), tn = AVG(tn) BY month\n| SORT month"
+            },
+            "x": {
+              "column": "month",
+              "format": {
+                "type": "number",
+                "decimals": 0,
+                "suffix": "月"
+              }
+            },
+            "y": [
+              {
+                "column": "tx",
+                "label": "日最高気温の平均",
+                "format": {
+                  "type": "number",
+                  "decimals": 1,
+                  "suffix": "℃"
+                },
+                "color": {
+                  "type": "static",
+                  "color": "#eb6834"
+                }
+              },
+              {
+                "column": "t",
+                "label": "平均気温",
+                "format": {
+                  "type": "number",
+                  "decimals": 1,
+                  "suffix": "℃"
+                },
+                "color": {
+                  "type": "static",
+                  "color": "#2a78d6"
+                }
+              },
+              {
+                "column": "tn",
+                "label": "日最低気温の平均",
+                "format": {
+                  "type": "number",
+                  "decimals": 1,
+                  "suffix": "℃"
+                },
+                "color": {
+                  "type": "static",
+                  "color": "#1baf7a"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "clim-precip",
+      "type": "vis",
+      "grid": {
+        "x": 24,
+        "y": 21,
+        "w": 24,
+        "h": 14
+      },
+      "config": {
+        "type": "xy",
+        "title": "月別の降水量（全期間の平均）",
+        "legend": {
+          "visibility": "hidden",
+          "placement": "outside",
+          "position": "top"
+        },
+        "axis": {
+          "x": {
+            "title": {
+              "visible": false
+            },
+            "scale": "linear"
+          },
+          "y": {
+            "title": {
+              "visible": false
+            },
+            "domain": {
+              "type": "full"
+            }
+          }
+        },
+        "styling": {
+          "fitting": {
+            "type": "none"
+          },
+          "points": {
+            "visibility": "auto"
+          }
+        },
+        "layers": [
+          {
+            "type": "bar",
+            "data_source": {
+              "type": "esql",
+              "query": "FROM jma-daily\n| WHERE prefecture == ?pref\n| STATS t = AVG(temp_avg), tx = AVG(temp_max), tn = AVG(temp_min), p = SUM(precip_total),\n    nt = COUNT(temp_avg), ntx = COUNT(temp_max), ntn = COUNT(temp_min), np = COUNT(precip_total), days = COUNT(*)\n  BY year, month\n| EVAL t = CASE(nt >= days * 0.8, ROUND(t, 1)), tx = CASE(ntx >= days * 0.8, ROUND(tx, 1)),\n    tn = CASE(ntn >= days * 0.8, ROUND(tn, 1)), p = CASE(np >= days * 0.8, ROUND(p, 1))\n| STATS p = AVG(p) BY month\n| SORT month"
+            },
+            "x": {
+              "column": "month",
+              "format": {
+                "type": "number",
+                "decimals": 0,
+                "suffix": "月"
+              }
+            },
+            "y": [
+              {
+                "column": "p",
+                "label": "降水量",
+                "format": {
+                  "type": "number",
+                  "decimals": 1,
+                  "suffix": " mm"
+                },
+                "color": {
+                  "type": "static",
+                  "color": "#2a78d6"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "year-temp",
+      "type": "vis",
+      "grid": {
+        "x": 0,
+        "y": 35,
+        "w": 24,
+        "h": 14
+      },
+      "config": {
+        "type": "xy",
+        "title": "選んだ年の気温（灰色は全期間の平均）",
+        "legend": {
+          "visibility": "visible",
+          "placement": "outside",
+          "position": "top"
+        },
+        "axis": {
+          "x": {
+            "title": {
+              "visible": false
+            },
+            "scale": "linear"
+          },
+          "y": {
+            "title": {
+              "visible": false
+            },
+            "domain": {
+              "type": "fit"
+            }
+          }
+        },
+        "styling": {
+          "fitting": {
+            "type": "none"
+          },
+          "points": {
+            "visibility": "auto"
+          }
+        },
+        "layers": [
+          {
+            "type": "line",
+            "data_source": {
+              "type": "esql",
+              "query": "FROM jma-daily\n| WHERE prefecture == ?pref\n| STATS t = AVG(temp_avg), tx = AVG(temp_max), tn = AVG(temp_min), p = SUM(precip_total),\n    nt = COUNT(temp_avg), ntx = COUNT(temp_max), ntn = COUNT(temp_min), np = COUNT(precip_total), days = COUNT(*)\n  BY year, month\n| EVAL t = CASE(nt >= days * 0.8, ROUND(t, 1)), tx = CASE(ntx >= days * 0.8, ROUND(tx, 1)),\n    tn = CASE(ntn >= days * 0.8, ROUND(tn, 1)), p = CASE(np >= days * 0.8, ROUND(p, 1))\n| STATS sel = AVG(t) WHERE year == TO_INTEGER(?year), base = AVG(t) BY month\n| SORT month"
+            },
+            "x": {
+              "column": "month",
+              "format": {
+                "type": "number",
+                "decimals": 0,
+                "suffix": "月"
+              }
+            },
+            "y": [
+              {
+                "column": "sel",
+                "label": "選んだ年",
+                "format": {
+                  "type": "number",
+                  "decimals": 1,
+                  "suffix": "℃"
+                },
+                "color": {
+                  "type": "static",
+                  "color": "#2a78d6"
+                }
+              },
+              {
+                "column": "base",
+                "label": "全期間の平均",
+                "format": {
+                  "type": "number",
+                  "decimals": 1,
+                  "suffix": "℃"
+                },
+                "color": {
+                  "type": "static",
+                  "color": "#898781"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "year-precip",
+      "type": "vis",
+      "grid": {
+        "x": 24,
+        "y": 35,
+        "w": 24,
+        "h": 14
+      },
+      "config": {
+        "type": "xy",
+        "title": "選んだ年の降水量（灰色は全期間の平均）",
+        "legend": {
+          "visibility": "visible",
+          "placement": "outside",
+          "position": "top"
+        },
+        "axis": {
+          "x": {
+            "title": {
+              "visible": false
+            },
+            "scale": "linear"
+          },
+          "y": {
+            "title": {
+              "visible": false
+            },
+            "domain": {
+              "type": "full"
+            }
+          }
+        },
+        "styling": {
+          "fitting": {
+            "type": "none"
+          },
+          "points": {
+            "visibility": "auto"
+          }
+        },
+        "layers": [
+          {
+            "type": "bar",
+            "data_source": {
+              "type": "esql",
+              "query": "FROM jma-daily\n| WHERE prefecture == ?pref\n| STATS t = AVG(temp_avg), tx = AVG(temp_max), tn = AVG(temp_min), p = SUM(precip_total),\n    nt = COUNT(temp_avg), ntx = COUNT(temp_max), ntn = COUNT(temp_min), np = COUNT(precip_total), days = COUNT(*)\n  BY year, month\n| EVAL t = CASE(nt >= days * 0.8, ROUND(t, 1)), tx = CASE(ntx >= days * 0.8, ROUND(tx, 1)),\n    tn = CASE(ntn >= days * 0.8, ROUND(tn, 1)), p = CASE(np >= days * 0.8, ROUND(p, 1))\n| STATS sel = AVG(p) WHERE year == TO_INTEGER(?year) BY month\n| SORT month"
+            },
+            "x": {
+              "column": "month",
+              "format": {
+                "type": "number",
+                "decimals": 0,
+                "suffix": "月"
+              }
+            },
+            "y": [
+              {
+                "column": "sel",
+                "label": "選んだ年",
+                "format": {
+                  "type": "number",
+                  "decimals": 1,
+                  "suffix": " mm"
+                },
+                "color": {
+                  "type": "static",
+                  "color": "#2a78d6"
+                }
+              }
+            ]
+          },
+          {
+            "type": "line",
+            "data_source": {
+              "type": "esql",
+              "query": "FROM jma-daily\n| WHERE prefecture == ?pref\n| STATS t = AVG(temp_avg), tx = AVG(temp_max), tn = AVG(temp_min), p = SUM(precip_total),\n    nt = COUNT(temp_avg), ntx = COUNT(temp_max), ntn = COUNT(temp_min), np = COUNT(precip_total), days = COUNT(*)\n  BY year, month\n| EVAL t = CASE(nt >= days * 0.8, ROUND(t, 1)), tx = CASE(ntx >= days * 0.8, ROUND(tx, 1)),\n    tn = CASE(ntn >= days * 0.8, ROUND(tn, 1)), p = CASE(np >= days * 0.8, ROUND(p, 1))\n| STATS base = AVG(p) BY month\n| SORT month"
+            },
+            "x": {
+              "column": "month",
+              "format": {
+                "type": "number",
+                "decimals": 0,
+                "suffix": "月"
+              }
+            },
+            "y": [
+              {
+                "column": "base",
+                "label": "全期間の平均",
+                "format": {
+                  "type": "number",
+                  "decimals": 1,
+                  "suffix": " mm"
+                },
+                "color": {
+                  "type": "static",
+                  "color": "#898781"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "compare",
+      "type": "vis",
+      "grid": {
+        "x": 0,
+        "y": 49,
+        "w": 48,
+        "h": 15
+      },
+      "config": {
+        "type": "xy",
+        "title": "都道府県の比較：年平均気温（上の「比較する都道府県」で選択）",
+        "legend": {
+          "visibility": "visible",
+          "placement": "outside",
+          "position": "top"
+        },
+        "axis": {
+          "x": {
+            "title": {
+              "visible": false
+            },
+            "scale": "linear"
+          },
+          "y": {
+            "title": {
+              "visible": false
+            },
+            "domain": {
+              "type": "fit"
+            }
+          }
+        },
+        "styling": {
+          "fitting": {
+            "type": "none"
+          },
+          "points": {
+            "visibility": "auto"
+          }
+        },
+        "layers": [
+          {
+            "type": "line",
+            "data_source": {
+              "type": "esql",
+              "query": "FROM jma-daily\n| WHERE MV_CONTAINS(?prefs, prefecture)\n| STATS t = AVG(temp_avg), tx = AVG(temp_max), tn = AVG(temp_min), p = SUM(precip_total),\n    nt = COUNT(temp_avg), ntx = COUNT(temp_max), ntn = COUNT(temp_min), np = COUNT(precip_total), days = COUNT(*)\n  BY prefecture, year, month\n| EVAL t = CASE(nt >= days * 0.8, ROUND(t, 1)), tx = CASE(ntx >= days * 0.8, ROUND(tx, 1)),\n    tn = CASE(ntn >= days * 0.8, ROUND(tn, 1)), p = CASE(np >= days * 0.8, ROUND(p, 1))\n| STATS t = AVG(t), tx = AVG(tx), tn = AVG(tn), p = SUM(p),\n    ct = COUNT(t), ctx = COUNT(tx), ctn = COUNT(tn), cp = COUNT(p) BY prefecture, year\n| EVAL t = CASE(ct == 12, ROUND(t, 1)), tx = CASE(ctx == 12, ROUND(tx, 1)),\n    tn = CASE(ctn == 12, ROUND(tn, 1)), p = CASE(cp == 12, ROUND(p, 1))\n| KEEP year, prefecture, t\n| SORT year"
+            },
+            "x": {
+              "column": "year",
+              "format": {
+                "type": "custom",
+                "pattern": "0"
+              }
+            },
+            "y": [
+              {
+                "column": "t",
+                "label": "年平均気温",
+                "format": {
+                  "type": "number",
+                  "decimals": 1,
+                  "suffix": "℃"
+                }
+              }
+            ],
+            "breakdown_by": {
+              "column": "prefecture",
+              "label": "都道府県"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "table",
+      "type": "vis",
+      "grid": {
+        "x": 0,
+        "y": 64,
+        "w": 48,
+        "h": 66
+      },
+      "config": {
+        "type": "data_table",
+        "title": "一覧（列見出しで並べ替え。直近10年 = 2016〜2025年）",
+        "data_source": {
+          "type": "esql",
+          "query": "FROM jma-daily\n| STATS t = AVG(temp_avg), tx = AVG(temp_max), tn = AVG(temp_min), p = SUM(precip_total),\n    nt = COUNT(temp_avg), ntx = COUNT(temp_max), ntn = COUNT(temp_min), np = COUNT(precip_total), days = COUNT(*)\n  BY prefecture, station, year, month\n| EVAL t = CASE(nt >= days * 0.8, ROUND(t, 1)), tx = CASE(ntx >= days * 0.8, ROUND(tx, 1)),\n    tn = CASE(ntn >= days * 0.8, ROUND(tn, 1)), p = CASE(np >= days * 0.8, ROUND(p, 1))\n| STATS t = AVG(t), tx = AVG(tx), tn = AVG(tn), p = SUM(p),\n    ct = COUNT(t), ctx = COUNT(tx), ctn = COUNT(tn), cp = COUNT(p) BY prefecture, station, year\n| EVAL t = CASE(ct == 12, ROUND(t, 1)), tx = CASE(ctx == 12, ROUND(tx, 1)),\n    tn = CASE(ctn == 12, ROUND(tn, 1)), p = CASE(cp == 12, ROUND(p, 1))\n| EVAL xt = CASE(t IS NOT NULL, TO_DOUBLE(year - 2000))\n| STATS allT = AVG(t), recT = AVG(t) WHERE year >= 2016, allP = AVG(p), recP = AVG(p) WHERE year >= 2016,\n    n = COUNT(t), sx = SUM(xt), sy = SUM(t), sxy = SUM(xt * t), sxx = SUM(xt * xt) BY prefecture, station\n| EVAL diffT = recT - allT, trend = (n * sxy - sx * sy) / (n * sxx - sx * sx) * 10\n| EVAL no = CASE(prefecture == \"北海道\", 1, prefecture == \"青森県\", 2, prefecture == \"岩手県\", 3, prefecture == \"宮城県\", 4, prefecture == \"秋田県\", 5, prefecture == \"山形県\", 6, prefecture == \"福島県\", 7, prefecture == \"茨城県\", 8, prefecture == \"栃木県\", 9, prefecture == \"群馬県\", 10, prefecture == \"埼玉県\", 11, prefecture == \"千葉県\", 12, prefecture == \"東京都\", 13, prefecture == \"神奈川県\", 14, prefecture == \"新潟県\", 15, prefecture == \"富山県\", 16, prefecture == \"石川県\", 17, prefecture == \"福井県\", 18, prefecture == \"山梨県\", 19, prefecture == \"長野県\", 20, prefecture == \"岐阜県\", 21, prefecture == \"静岡県\", 22, prefecture == \"愛知県\", 23, prefecture == \"三重県\", 24, prefecture == \"滋賀県\", 25, prefecture == \"京都府\", 26, prefecture == \"大阪府\", 27, prefecture == \"兵庫県\", 28, prefecture == \"奈良県\", 29, prefecture == \"和歌山県\", 30, prefecture == \"鳥取県\", 31, prefecture == \"島根県\", 32, prefecture == \"岡山県\", 33, prefecture == \"広島県\", 34, prefecture == \"山口県\", 35, prefecture == \"徳島県\", 36, prefecture == \"香川県\", 37, prefecture == \"愛媛県\", 38, prefecture == \"高知県\", 39, prefecture == \"福岡県\", 40, prefecture == \"佐賀県\", 41, prefecture == \"長崎県\", 42, prefecture == \"熊本県\", 43, prefecture == \"大分県\", 44, prefecture == \"宮崎県\", 45, prefecture == \"鹿児島県\", 46, prefecture == \"沖縄県\", 47)\n| KEEP no, prefecture, station, allT, recT, diffT, trend, allP, recP\n| SORT no"
+        },
+        "rows": [
+          {
+            "column": "no",
+            "label": "No."
+          },
+          {
+            "column": "prefecture",
+            "label": "都道府県"
+          },
+          {
+            "column": "station",
+            "label": "地点"
+          }
+        ],
+        "metrics": [
+          {
+            "column": "allT",
+            "label": "年平均気温 ℃",
+            "format": {
+              "type": "number",
+              "decimals": 1
+            }
+          },
+          {
+            "column": "recT",
+            "label": "直近10年 ℃",
+            "format": {
+              "type": "number",
+              "decimals": 1
+            }
+          },
+          {
+            "column": "diffT",
+            "label": "差 ℃",
+            "format": {
+              "type": "custom",
+              "pattern": "+0.0"
+            }
+          },
+          {
+            "column": "trend",
+            "label": "傾向 ℃/10年",
+            "format": {
+              "type": "custom",
+              "pattern": "+0.00"
+            }
+          },
+          {
+            "column": "allP",
+            "label": "年降水量 mm",
+            "format": {
+              "type": "number",
+              "decimals": 0
+            }
+          },
+          {
+            "column": "recP",
+            "label": "直近10年 mm",
+            "format": {
+              "type": "number",
+              "decimals": 0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "note",
+      "type": "markdown",
+      "grid": {
+        "x": 0,
+        "y": 130,
+        "w": 48,
+        "h": 5
+      },
+      "config": {
+        "title": "出典・集計ルール",
+        "settings": {
+          "open_links_in_new_tab": true
+        },
+        "content": "出典：気象庁「過去の気象データ・ダウンロード」の日別値（`data/raw` の CSV を Logstash で取り込み）。品質情報 5 未満の値は取り込み時に除外。日数が 8 割未満の月、12 か月そろわない年は空欄。年平均気温は月平均気温の平均（HTML ビューアと同じ計算）。"
+      }
+    }
+  ]
+}

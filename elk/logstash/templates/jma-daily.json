@@ -1,0 +1,34 @@
+{
+  "index_patterns": ["jma-daily*"],
+  "priority": 200,
+  "template": {
+    "settings": {
+      "number_of_shards": 1,
+      "number_of_replicas": 0
+    },
+    "mappings": {
+      "properties": {
+        "@timestamp": { "type": "date" },
+        "date": { "type": "date", "format": "yyyy/M/d" },
+        "year": { "type": "short" },
+        "month": { "type": "byte" },
+        "day": { "type": "byte" },
+        "prefecture": { "type": "keyword" },
+        "station": { "type": "keyword" },
+        "temp_avg": { "type": "float" },
+        "temp_avg_quality": { "type": "byte" },
+        "temp_avg_homogeneity": { "type": "byte" },
+        "temp_max": { "type": "float" },
+        "temp_max_quality": { "type": "byte" },
+        "temp_max_homogeneity": { "type": "byte" },
+        "temp_min": { "type": "float" },
+        "temp_min_quality": { "type": "byte" },
+        "temp_min_homogeneity": { "type": "byte" },
+        "precip_total": { "type": "float" },
+        "precip_total_quality": { "type": "byte" },
+        "precip_total_homogeneity": { "type": "byte" },
+        "precip_total_nophenomenon": { "type": "byte" }
+      }
+    }
+  }
+}
